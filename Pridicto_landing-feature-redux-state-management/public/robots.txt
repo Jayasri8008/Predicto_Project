@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /api
+Disallow: /login
+Disallow: /*.json$
+Disallow: /*?*
+
+# Crawl delay (in seconds)
+Crawl-delay: 1
+
+# Google-specific rules
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Bing-specific rules
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Sitemap
+Sitemap: https://predicto.ai/sitemap.xml

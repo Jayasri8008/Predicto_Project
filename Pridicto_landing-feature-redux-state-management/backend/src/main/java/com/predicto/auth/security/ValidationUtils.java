@@ -1,0 +1,249 @@
+package com.predicto.auth.security;
+
+import java.util.regex.Pattern;
+
+/**
+ * Enhanced Validation Utilities for Security
+ * Implements strong password policies and input validation
+ */
+public class ValidationUtils {
+    
+    // Password validation patterns
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile(
+        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
+    );
+    
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+        "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+    );
+    
+    private static final Pattern NAME_PATTERN = Pattern.compile(
+        "^[a-zA-Z\\s'-]{2,50}$"
+    );
+    
+    // Validation constants
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MAX_PASSWORD_LENGTH = 128;
+    private static final int MIN_NAME_LENGTH = 2;
+    private static final int MAX_NAME_LENGTH = 50;
+    private static final int MAX_EMAIL_LENGTH = 255;
+    
+    /**
+     * Validate password strength
+     * Requirements:
+     * - At least 8 characters long
+     * - Contains at least one lowercase letter
+     * - Contains at least one uppercase letter
+     * - Contains at least one digit
+     * - Contains at least one special character (@$!%*?&)
+     * - No more than 128 characters
+     */
+    public static ValidationResult validatePassword(String password) {
+        if (password == null || password.isEmpty()) {
+            return ValidationResult.failure("Password cannot be empty");
+        }
+        
+        if (password.length() < MIN_PASSWORD_LENGTH) {
+            return ValidationResult.failure("Password must be at least " + MIN_PASSWORD_LENGTH + " characters long");
+        }
+        
+        if (password.length() > MAX_PASSWORD_LENGTH) {
+            return ValidationResult.failure("Password cannot be more than " + MAX_PASSWORD_LENGTH + " characters long");
+        }
+        
+        if (!PASSWORD_PATTERN.matcher(password).matches()) {
+            return ValidationResult.failure("Password must contain at least one uppercase letter, " +
+                                           "one lowercase letter, one digit, and one special character (@$!%*?&)");
+        }
+        
+        // Check for common weak passwords
+        if (isCommonPassword(password)) {
+            return ValidationResult.failure("Password is too common. Please choose a more secure password");
+        }
+        
+        // Check for sequential characters
+        if (hasSequentialCharacters(password)) {
+            return ValidationResult.failure("Password cannot contain sequential characters (e.g., abc, 123)");
+        }
+        
+        // Check for repeated characters
+        if (hasRepeatedCharacters(password)) {
+            return ValidationResult.failure("Password cannot contain repeated characters (e.g., aaa, 111)");
+        }
+        
+        return ValidationResult.success("Password is strong");
+    }
+    
+    /**
+     * Validate email format
+     */
+    public static ValidationResult validateEmail(String email) {
+        if (email == null || email.isEmpty()) {
+            return ValidationResult.failure("Email cannot be empty");
+        }
+        
+        if (email.length() > MAX_EMAIL_LENGTH) {
+            return ValidationResult.failure("Email is too long");
+        }
+        
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            return ValidationResult.failure("Invalid email format");
+        }
+        
+        return ValidationResult.success("Email is valid");
+    }
+    
+    /**
+     * Validate name (first name or last name)
+     */
+    public static ValidationResult validateName(String name, String fieldName) {
+        if (name == null || name.isEmpty()) {
+            return ValidationResult.failure(fieldName + " cannot be empty");
+        }
+        
+        if (name.length() < MIN_NAME_LENGTH) {
+            return ValidationResult.failure(fieldName + " must be at least " + MIN_NAME_LENGTH + " characters long");
+        }
+        
+        if (name.length() > MAX_NAME_LENGTH) {
+            return ValidationResult.failure(fieldName + " cannot be more than " + MAX_NAME_LENGTH + " characters long");
+        }
+        
+        if (!NAME_PATTERN.matcher(name).matches()) {
+            return ValidationResult.failure(fieldName + " can only contain letters, spaces, hyphens, and apostrophes");
+        }
+        
+        return ValidationResult.success(fieldName + " is valid");
+    }
+    
+    /**
+     * Validate OTP code
+     */
+    public static ValidationResult validateOtp(String otp) {
+        if (otp == null || otp.isEmpty()) {
+            return ValidationResult.failure("OTP cannot be empty");
+        }
+        
+        if (!otp.matches("\\d{6}")) {
+            return ValidationResult.failure("OTP must be exactly 6 digits");
+        }
+        
+        return ValidationResult.success("OTP is valid");
+    }
+    
+    /**
+     * Sanitize input string to prevent XSS and injection attacks
+     */
+    public static String sanitizeInput(String input) {
+        if (input == null) {
+            return null;
+        }
+        
+        return input.trim()
+                   .replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#x27;")
+                   .replace("/", "&#x2F;");
+    }
+    
+    /**
+     * Check if password is commonly used (basic list)
+     */
+    private static boolean isCommonPassword(String password) {
+        String[] commonPasswords = {
+            "password", "123456", "123456789", "qwerty", "abc123", "password123",
+            "admin", "letmein", "welcome", "monkey", "1234567890", "password1",
+            "12345", "12345678", "qwerty123", "1q2w3e4r", "111111", "123123"
+        };
+        
+        String lowerPassword = password.toLowerCase();
+        for (String common : commonPasswords) {
+            if (lowerPassword.contains(common)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Check for sequential characters
+     */
+    private static boolean hasSequentialCharacters(String password) {
+        String lowerPassword = password.toLowerCase();
+        
+        // Check for sequential letters
+        for (int i = 0; i < lowerPassword.length() - 2; i++) {
+            char c1 = lowerPassword.charAt(i);
+            char c2 = lowerPassword.charAt(i + 1);
+            char c3 = lowerPassword.charAt(i + 2);
+            
+            if ((c2 == c1 + 1) && (c3 == c2 + 1)) {
+                return true;
+            }
+        }
+        
+        // Check for sequential numbers
+        for (int i = 0; i < lowerPassword.length() - 2; i++) {
+            if (Character.isDigit(lowerPassword.charAt(i))) {
+                int num1 = lowerPassword.charAt(i) - '0';
+                int num2 = lowerPassword.charAt(i + 1) - '0';
+                int num3 = lowerPassword.charAt(i + 2) - '0';
+                
+                if (num2 == num1 + 1 && num3 == num2 + 1) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Check for repeated characters
+     */
+    private static boolean hasRepeatedCharacters(String password) {
+        for (int i = 0; i < password.length() - 2; i++) {
+            char c1 = password.charAt(i);
+            char c2 = password.charAt(i + 1);
+            char c3 = password.charAt(i + 2);
+            
+            if (c1 == c2 && c2 == c3) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Validation result class
+     */
+    public static class ValidationResult {
+        private final boolean valid;
+        private final String message;
+        
+        private ValidationResult(boolean valid, String message) {
+            this.valid = valid;
+            this.message = message;
+        }
+        
+        public static ValidationResult success(String message) {
+            return new ValidationResult(true, message);
+        }
+        
+        public static ValidationResult failure(String message) {
+            return new ValidationResult(false, message);
+        }
+        
+        public boolean isValid() {
+            return valid;
+        }
+        
+        public String getMessage() {
+            return message;
+        }
+    }
+}
