@@ -13,7 +13,4 @@ public interface PasswordResetOtpRepository
     Optional<PasswordResetOtp> findByEmailAndOtpAndUsedFalse(
             String email, String otp
     );
-}
-
-    
-
+        }

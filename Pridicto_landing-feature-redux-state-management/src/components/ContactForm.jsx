@@ -1,7 +1,7 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { useLocation } from 'react-router-dom';
-import emailjs from '@emailjs/browser';
+//import emailjs from '@emailjs/browser';
 
 export default function ContactForm() {
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
@@ -15,20 +15,31 @@ export default function ContactForm() {
     }
   }, [quoteData, setValue]);
 
-  const onSubmit = (data) => {
-    // Include quote data in the email
-    const emailData = {
-      ...data,
-      quoteDetails: quoteData ? JSON.stringify(quoteData, null, 2) : 'No quote details'
-    };
-
-    emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', emailData, 'YOUR_USER_ID')
-      .then(() => {
-        alert('Message sent successfully!');
-        reset();
+  const onSubmit = async (data) => {
+  try {
+    const response = await fetch("http://localhost:8080/api/contact", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        ...data,
+        quoteDetails: quoteData || null
       })
-      .catch(() => alert('Failed to send message.'));
-  };
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed");
+    }
+
+    alert("Message sent successfully!");
+    reset();
+  } catch (error) {
+    alert("Failed to send message.");
+  }
+};
+
+
 
   return (
     <div className="space-y-6">
@@ -111,3 +122,5 @@ export default function ContactForm() {
     </div>
   );
 }
+
+
