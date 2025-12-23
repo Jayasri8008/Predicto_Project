@@ -12,20 +12,48 @@ import {
 
 export default function ScheduleMeeting() {
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [date, setDate] = useState(null);
   const [time, setTime] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    if (!name || !date || !time) return;
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    if (!name || !email || !date || !time) return;
 
-    setTimeout(() => {
-      setSubmitted(false);
-      setName("");
-      setDate(null);
-      setTime("");
-    }, 2000);
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:8080/api/meetings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          meetingDate: date.toISOString().split("T")[0], // yyyy-MM-dd
+          meetingTime: time, // backend accepts string
+        }),
+      });
+
+      if (response.ok) {
+        // ✅ SHOW SUCCESS ONLY IF STORED IN DB
+        setSubmitted(true);
+
+        setTimeout(() => {
+          setSubmitted(false);
+          setName("");
+          setEmail("");
+          setDate(null);
+          setTime("");
+        }, 2000);
+      } else {
+        alert("❌ Failed to store meeting details");
+      }
+    } catch (error) {
+      alert("❌ Server error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,61 +85,64 @@ export default function ScheduleMeeting() {
         </div>
       </div>
 
-      {/* Date Picker */}
+      {/* Email */}
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-          Select Date
+          Your Email
         </label>
-
-        <div className="relative">
-          <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300" />
-
-          <DatePicker
-            selected={date}
-            onChange={(d) => setDate(d)}
-            placeholderText="Choose a date"
-            className="w-full pl-10 pr-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-gray-100 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-            calendarClassName="!bg-white dark:!bg-slate-800 !rounded-xl !p-3 !border !border-gray-200 dark:!border-slate-700 shadow-lg scale-105"
-            dayClassName={() =>
-              "!text-gray-900 dark:!text-white hover:!bg-indigo-500 hover:!text-white rounded-lg"
-            }
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 px-3 py-2 rounded-lg">
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-transparent outline-none text-gray-900 dark:text-gray-100"
           />
         </div>
       </div>
 
-      {/* Time Picker */}
+      {/* Date */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+          Select Date
+        </label>
+        <DatePicker
+          selected={date}
+          onChange={(d) => setDate(d)}
+          placeholderText="Choose a date"
+          className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-gray-100 rounded-lg"
+        />
+      </div>
+
+      {/* Time */}
       <div className="mb-6">
         <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
           Select Time
         </label>
-
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 px-3 py-2 rounded-lg">
-          <FiClock className="text-gray-500 dark:text-gray-300" />
-          <select
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="w-full bg-transparent outline-none text-gray-900 dark:text-gray-100"
-          >
-            <option value="">Choose time</option>
-            <option value="10AM - 11AM">10 AM - 11 AM</option>
-            <option value="12PM - 1PM">12 PM - 1 PM</option>
-            <option value="3PM - 4PM">3 PM - 4 PM</option>
-            <option value="6PM - 7PM">6 PM - 7 PM</option>
-          </select>
-        </div>
+        <select
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-gray-100 rounded-lg"
+        >
+          <option value="">Choose time</option>
+          <option value="10:00">10 AM</option>
+          <option value="12:00">12 PM</option>
+          <option value="15:00">3 PM</option>
+          <option value="18:00">6 PM</option>
+        </select>
       </div>
 
-      {/* Submit Button */}
+      {/* Submit */}
       <button
         onClick={handleSubmit}
-        disabled={!name || !date || !time}
-        className="w-full py-3 rounded-lg text-white font-semibold flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={!name || !email || !date || !time || loading}
+        className="w-full py-3 rounded-lg text-white font-semibold flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 disabled:opacity-50"
       >
         <FiSend className="w-4 h-4" />
-        Schedule Meeting
+        {loading ? "Saving..." : "Schedule Meeting"}
       </button>
 
-      {/* Success Popup */}
+      {/* Success */}
       {submitted && (
         <motion.div
           initial={{ scale: 0.6, opacity: 0 }}
@@ -120,7 +151,7 @@ export default function ScheduleMeeting() {
         >
           <FiCheckCircle className="text-green-500 w-14 h-14 mb-3" />
           <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Meeting Scheduled!
+            ✅ Meeting details stored successfully
           </p>
         </motion.div>
       )}

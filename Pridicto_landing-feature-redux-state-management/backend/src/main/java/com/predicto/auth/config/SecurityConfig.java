@@ -9,6 +9,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
@@ -19,10 +22,25 @@ public class SecurityConfig {
         this.jwtUtils = jwtUtils;
     }
 
-    // ✅ REQUIRED for AuthService (FIXES YOUR CURRENT ERROR)
+    // ✅ Password Encoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    // ✅ CORS CONFIG
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
+        config.addAllowedOrigin("http://localhost:5173");
+        config.addAllowedHeader("*");
+        config.addAllowedMethod("*");
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     @Bean
@@ -37,7 +55,9 @@ public class SecurityConfig {
                     "/auth/**",
                     "/oauth2/**",
                     "/login/**",
-                     "/api/contact" 
+                    "/api/contact",
+                    "/api/meetings/**",     // ✅ FIXED
+                    "/api/analytics/**"     // ✅ FIXED (stops OAuth CORS error)
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -50,10 +70,9 @@ public class SecurityConfig {
                     String email =
                             oauthToken.getPrincipal().getAttribute("email");
 
-                    // ✅ Generate JWT after Google login
-                    String token = jwtUtils.generateTokenFromUsername(email);
+                    String token =
+                            jwtUtils.generateTokenFromUsername(email);
 
-                    // ✅ Redirect to frontend with token
                     response.sendRedirect(
                         "http://localhost:5173/dashboard?token=" + token
                     );
